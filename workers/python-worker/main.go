@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -109,7 +110,7 @@ func processExecution(req NewExecutionRequest) string {
 		return fmt.Sprintf("Error decoding base64 code: %v", err)
 	}
 
-	// Determine the command based on the LanguageId
+	// Initialize command based on the LanguageId
 	var cmd *exec.Cmd
 	switch req.LanguageId {
 	case 1: // Python
@@ -117,7 +118,6 @@ func processExecution(req NewExecutionRequest) string {
 	case 2: // JavaScript (Node.js)
 		cmd = exec.Command("node", "-e", string(decodedCode))
 	case 3: // Go
-		// Save code to a temporary file
 		tempFile := "/tmp/temp.go"
 		err := os.WriteFile(tempFile, decodedCode, 0644)
 		if err != nil {
@@ -125,22 +125,34 @@ func processExecution(req NewExecutionRequest) string {
 		}
 		cmd = exec.Command("go", "run", tempFile)
 	case 4: // Java
-		// Similar to Go, you need to handle file writing, compilation, and execution
 		tempFile := "/tmp/Main.java"
 		err := os.WriteFile(tempFile, decodedCode, 0644)
 		if err != nil {
 			return fmt.Sprintf("Error writing Java code to file: %v", err)
 		}
-		// First, compile the Java code
+		// Compile Java code
 		compileCmd := exec.Command("javac", tempFile)
 		_, err = compileCmd.CombinedOutput()
 		if err != nil {
 			return fmt.Sprintf("Error compiling Java code: %v", err)
 		}
-		// Then, execute the compiled code
 		cmd = exec.Command("java", "-cp", "/tmp", "Main")
+	case 9: // Bash
+		// Write the Bash code to a temporary file
+		tempFile := "/tmp/temp.sh"
+		err := os.WriteFile(tempFile, decodedCode, 0755) // 0755 permissions to execute
+		if err != nil {
+			return fmt.Sprintf("Error writing Bash code to file: %v", err)
+		}
+		// Use bash to execute the script
+		cmd = exec.Command("bash", tempFile)
 	default:
 		return "Unsupported language"
+	}
+
+	// Set up stdin for the command if provided
+	if req.StdIn != "" {
+		cmd.Stdin = bytes.NewBufferString(req.StdIn)
 	}
 
 	// Execute the code
@@ -151,7 +163,6 @@ func processExecution(req NewExecutionRequest) string {
 
 	return string(output)
 }
-
 func sendResult(ch *amqp.Channel, connectionId, output string) {
 	result := ExecutionResult{
 		ConnectionId: connectionId,

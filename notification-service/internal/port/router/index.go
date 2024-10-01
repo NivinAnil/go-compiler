@@ -2,8 +2,6 @@ package router
 
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	"github.com/streadway/amqp"
 	"go-compiler/common/pkg/utils"
 	"go-compiler/notification-service/internal/port/factory"
 	"log"
@@ -11,6 +9,8 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/streadway/amqp"
 )
 
 // WebSocket upgrader to upgrade HTTP requests to WebSocket protocol
@@ -52,7 +52,7 @@ func NewRouter() *gin.Engine {
 
 	router.Use(CORSMiddleware())
 
-	go ListenToQueue("executions", "amqp://guest:guest@127.0.0.1:5672/")
+	go ListenToQueue("executions", "amqp://guest:guest@rabbitmq-service:5672/")
 
 	return router
 
@@ -113,7 +113,6 @@ func SendMessageToClient(connectionID string, result ExecutionBody) {
 	if err != nil {
 		log.Info("Error sending message to WebSocket client %s: %v", connectionID, err)
 		conn.Close()
-
 		// Remove the connection from the map
 		connMutex.Lock()
 		delete(connections, connectionID)

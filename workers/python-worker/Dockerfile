@@ -22,6 +22,7 @@ WORKDIR /app
 
 # Install necessary system dependencies, including Python 3 and bash
 RUN apk add --no-cache bash
+RUN apk add --no-cache nodejs npm
 
 # Copy the built Go binary from the builder stage
 COPY --from=builder /app/worker /app/worker

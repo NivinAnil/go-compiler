@@ -3,12 +3,19 @@ kind: Service
 metadata:
   name: rabbitmq-service
 spec:
-  type: LoadBalancer
-  ports:
-    - port: 5672
-      targetPort: 5672
   selector:
     app: rabbitmq
+  ports:
+    - name: amqp  # Name for the AMQP port (5672)
+      port: 5672
+      targetPort: 5672
+      protocol: TCP
+    - name: management  # Name for the management UI port (15672)
+      port: 15672
+      targetPort: 15672
+      protocol: TCP
+  type: ClusterIP  # Ensure that you set this to ClusterIP if you're routing through ingress
+
 ---
 apiVersion: apps/v1
 kind: Deployment

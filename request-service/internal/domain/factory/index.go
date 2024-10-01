@@ -13,6 +13,6 @@ type DomainFactory struct {
 func NewDomainFactory() *DomainFactory {
 	adapters := factory.NewAdapterFactory()
 	return &DomainFactory{
-		ExecutionService: impl.NewExecutionRequestService(adapters.QueueClient, "amqp://guest:guest@127.0.0.1:5672/"),
+		ExecutionService: impl.NewExecutionRequestService(adapters.QueueClient, "amqp://guest:guest@rabbitmq-service:5672/"),
 	}
 }

@@ -16,7 +16,7 @@ func main() {
 func StartService() {
 	log := logger.GetLogger()
 	r := pkg.GetRouter()
-	port := ":8082"
+	port := ":8080"
 
 	httpServer := &http.Server{
 		Addr:    port,
