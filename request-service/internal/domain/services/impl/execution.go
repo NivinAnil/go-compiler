@@ -3,7 +3,7 @@ package impl
 import (
 	"context"
 	"encoding/json"
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/request-service/internal/adapter/clients/queue"
 	"go-compiler/request-service/internal/domain/dto/request"
 )
@@ -14,7 +14,7 @@ type ExecutionRequestService struct {
 
 func NewExecutionRequestService(qc queue.IQueueClient, url string) *ExecutionRequestService {
 	er := qc.Connect(url)
-	log := utils.GetLogger(context.Background())
+	log := logger.GetLogger(context.Background())
 	if er != nil {
 		log.Error("Error in connecting to queue", "error", er.Error())
 		return nil
@@ -25,7 +25,7 @@ func NewExecutionRequestService(qc queue.IQueueClient, url string) *ExecutionReq
 }
 
 func (s *ExecutionRequestService) ProcessRequest(ctx context.Context, payload request.NewExecutionRequest) error {
-	log := utils.GetLogger(ctx)
+	log := logger.GetLogger(ctx)
 	methodName := "ProcessRequest"
 	log.Info("Entering", "methodName", methodName)
 

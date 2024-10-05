@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/request-service/internal/domain/dto/request"
 	"go-compiler/request-service/internal/domain/services/interfaces"
 	"time"
@@ -21,7 +21,7 @@ func NewRequestController(es interfaces.IExecutionService) *RequestController {
 
 func (rc *RequestController) GetRequest() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		log := utils.GetLogger(ctx)
+		log := logger.GetLogger(ctx)
 		methodName := "GetRequest"
 		log.Info("Entering", "methodName", methodName)
 		start := time.Now()

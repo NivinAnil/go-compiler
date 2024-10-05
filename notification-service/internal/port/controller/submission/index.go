@@ -1,7 +1,7 @@
 package submission
 
 import (
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +14,7 @@ func NewSubmissionController() *SubmissionController {
 
 func (s *SubmissionController) CreateSubmission() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		log := utils.GetLogger()
+		log := logger.GetLogger(ctx)
 		methodName := "CreateSubmission"
 		log.Info("Inside " + methodName)
 	}

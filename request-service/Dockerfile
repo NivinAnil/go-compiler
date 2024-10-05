@@ -11,8 +11,6 @@ WORKDIR /app
 RUN apk update
 RUN apk add --no-cache git
 
-ENV GOPRIVATE="github.com/kodnest"
-RUN git config --global url."https://VikramRay96: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@github.com".insteadOf "https://github.com"
 # Copy go mod and sum files
 COPY go.mod .
 COPY go.sum .

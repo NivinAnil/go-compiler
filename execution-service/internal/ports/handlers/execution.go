@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/execution-service/internal/domain/dto/request"
 	"go-compiler/execution-service/internal/domain/services/interfaces"
 	"time"
@@ -24,7 +24,7 @@ func (handler *ExecutionHandler) Handle(payload string) error {
 	ctx := context.Background()
 
 	// Get the logger
-	log := utils.GetLogger(ctx)
+	log := logger.GetLogger(ctx)
 	methodName := "Handle"
 	start := time.Now()
 	log.Info("Entering", "methodName", methodName, "start_time", start)

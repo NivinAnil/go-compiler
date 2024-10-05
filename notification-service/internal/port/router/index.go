@@ -2,7 +2,7 @@ package router
 
 import (
 	"encoding/json"
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/notification-service/internal/port/factory"
 	"log"
 	"net/http"
@@ -100,7 +100,7 @@ func ListenToQueue(queueName, rabbitMQURL string) {
 func SendMessageToClient(connectionID string, result ExecutionBody) {
 	connMutex.Lock()
 
-	log := utils.GetLogger()
+	log := logger.GetLogger()
 	conn, exists := connections[connectionID]
 	connMutex.Unlock()
 
