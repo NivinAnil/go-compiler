@@ -1,7 +1,7 @@
 package main
 
 import (
-	logger "go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/notification-service/pkg"
 	"net/http"
 )

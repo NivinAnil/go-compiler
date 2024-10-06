@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/execution-service/internal/adapter/clients/kubernetes"
 	"go-compiler/execution-service/internal/adapter/clients/queue"
 	"go-compiler/execution-service/internal/domain/dto/request"
@@ -26,7 +26,7 @@ func NewExecutionRequestService(qc queue.IQueueClient, kc kubernetes.IKubernetes
 }
 
 func (s *ExecutionRequestService) HandleExecution(ctx context.Context, payload request.NewExecutionRequest) error {
-	log := utils.GetLogger(ctx)
+	log := logger.GetLogger(ctx)
 	methodName := "HandleExecution"
 	start := time.Now()
 	log.Info("Entering", "methodName", methodName, "start_time", start)
@@ -44,7 +44,7 @@ func (s *ExecutionRequestService) HandleExecution(ctx context.Context, payload r
 }
 
 func (e *ExecutionRequestService) ProcessPython(Code string, Stdin string, ConnectionId string) string {
-	log := utils.GetLogger()
+	log := logger.GetLogger()
 	processStart := time.Now()
 	log.Info("Inside ProcessPython", "start_time", processStart)
 
