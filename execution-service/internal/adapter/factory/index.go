@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"go-compiler/common/pkg/utils"
+	"go-compiler/common/pkg/utils/logger"
 	"go-compiler/execution-service/internal/adapter/clients/kubernetes"
 	"go-compiler/execution-service/internal/adapter/clients/queue"
 	"go-compiler/execution-service/internal/adapter/clients/queue/impl"
@@ -13,7 +13,7 @@ type AdapterFactory struct {
 }
 
 func NewAdapterFactory() *AdapterFactory {
-	log := utils.GetLogger()
+	log := logger.GetLogger()
 	newQueue, _ := impl.NewQueueClient("executions", "amqp://guest:guest@localhost:5672/")
 	kuberenetClient, kuberenetError := kubernetes.NewKubernetesClient("default")
 	if kuberenetError != nil {
