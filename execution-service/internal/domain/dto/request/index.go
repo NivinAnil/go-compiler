@@ -1,9 +1,9 @@
 package request
 
 type NewExecutionRequest struct {
-	Id           string `json:"id"`
-	Code         string `json:"code"`
-	LanguageId   string `json:"language_id"`
-	ConnectionId string `json:"connection_id"`
-	StdIn        string `json:"stdin"`
+	Id         string `json:"id"`
+	Code       string `json:"code"`
+	LanguageId int64  `json:"language_id"`
+	RequestId  string `json:"request_id"`
+	StdIn      string `json:"stdin"`
 }

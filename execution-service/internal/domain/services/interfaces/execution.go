@@ -7,4 +7,5 @@ import (
 
 type IExecutionService interface {
 	HandleExecution(ctx context.Context, payload request.NewExecutionRequest) error
+	GetExecution(ctx context.Context, requestId string) (interface{}, error)
 }
