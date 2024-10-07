@@ -2,3 +2,4 @@
 ./k8s
 .idea
 main
+./frontend/node_modules

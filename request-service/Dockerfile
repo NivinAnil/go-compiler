@@ -21,7 +21,7 @@ RUN go mod download
 COPY ./common ./common
 COPY ./request-service ./request-service
 
-# Build the Go app
+# Build the Go frontend
 RUN go build -o main ./request-service
 
 # Expose port 8080 to the outside world
