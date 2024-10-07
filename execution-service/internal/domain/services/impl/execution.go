@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"go-compiler/common/pkg/utils"
 	"go-compiler/common/pkg/utils/logger"
-	"go-compiler/execution-service/internal/adapter/clients/kubernetes"
 	"go-compiler/execution-service/internal/adapter/clients/queue"
 	"go-compiler/execution-service/internal/domain/dto/request"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,14 +15,12 @@ import (
 
 type ExecutionRequestService struct {
 	QueueClient      queue.IQueueClient
-	KubernetesClient kubernetes.IKubernetesClient
 	cache            utils.ICacheClient
 }
 
-func NewExecutionRequestService(qc queue.IQueueClient, kc kubernetes.IKubernetesClient, c utils.ICacheClient) *ExecutionRequestService {
+func NewExecutionRequestService(qc queue.IQueueClient,  c utils.ICacheClient) *ExecutionRequestService {
 	return &ExecutionRequestService{
 		QueueClient:      qc,
-		KubernetesClient: kc,
 		cache:            c,
 	}
 }

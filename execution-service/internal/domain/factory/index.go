@@ -15,6 +15,6 @@ func NewDomainFactory() *DomainFactory {
 	adapters := factory.NewAdapterFactory()
 	cache := utils.NewCacheClient("localhost:6379", "", 0)
 	return &DomainFactory{
-		ExecutionService: impl.NewExecutionRequestService(adapters.QueueClient, adapters.Kubernetes, cache),
+		ExecutionService: impl.NewExecutionRequestService(adapters.QueueClient, cache),
 	}
 }
