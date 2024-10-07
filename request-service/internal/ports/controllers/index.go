@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"context"
 	"go-compiler/common/pkg/utils/logger"
+	pb "go-compiler/request-service/generated/go-compiler/generated/requestpb"
 	"go-compiler/request-service/internal/domain/dto/request"
 	"go-compiler/request-service/internal/domain/services/interfaces"
 	"time"
@@ -46,4 +48,30 @@ func (rc *RequestController) GetRequest() gin.HandlerFunc {
 
 		ctx.JSON(200, gin.H{"message": "Request processed successfully"})
 	}
+}
+
+func (rc *RequestController) SubmitRequest(ctx context.Context, req *pb.SubmissionRequest) (*pb.SubmissionResponse, error) {
+	log := logger.GetLogger(ctx)
+	methodName := "SubmitRequest"
+	log.Info("Entering", "methodName", methodName)
+	start := time.Now()
+	log.Info("Request received at: %v", start)
+
+	// Convert the gRPC request to the internal DTO
+	Payload := request.NewExecutionRequest{
+		Code:       req.Code,
+		StdIn:      req.Stdin,
+		RequestId:  req.RequestId,
+		LanguageId: req.LanguageId,
+	}
+
+	// Process the request
+	domainError := rc.ExecutionService.ProcessRequest(ctx, Payload)
+	if domainError != nil {
+		log.Error("Error in processing request", "error", domainError.Error())
+		return nil, domainError
+	}
+
+	log.Info("Request submitted to RabbitMQ at: %v", time.Since(start))
+	return &pb.SubmissionResponse{Result: "Request processed successfully"}, nil
 }

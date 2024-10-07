@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"go-compiler/common/pkg/utils/logger"
-	"go-compiler/execution-service/internal/domain/dto/request"
 	"go-compiler/execution-service/internal/domain/services/interfaces"
 
 	"github.com/gin-gonic/gin"
@@ -18,26 +17,20 @@ func NewRequestController(es interfaces.IExecutionService) *RequestController {
 	}
 }
 
-func (rc *RequestController) GetRequest() gin.HandlerFunc {
+func (rc *RequestController) GetExecution() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		log := logger.GetLogger(ctx)
-		methodName := "GetRequest"
+		methodName := "GetExecution"
 		log.Info("Entering", "methodName", methodName)
-		var Payload request.NewExecutionRequest
-		e := ctx.BindJSON(&Payload)
-		if e != nil {
-			log.Error("Error in binding request", "error", e.Error())
-			ctx.JSON(400, gin.H{"error": e.Error()})
-			return
-		}
+		requestId := ctx.Param("request_id")
 
-		domainError := rc.ExecutionService.HandleExecution(ctx, Payload)
+		resp, domainError := rc.ExecutionService.GetExecution(ctx, requestId)
 		if domainError != nil {
 			log.Error("Error in processing request", "error", domainError.Error())
 			ctx.JSON(500, gin.H{"error": domainError.Error()})
 			return
 		}
 
-		ctx.JSON(200, gin.H{"message": "Request processed successfully"})
+		ctx.JSON(200, resp)
 	}
 }
