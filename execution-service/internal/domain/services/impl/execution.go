@@ -3,141 +3,223 @@ package impl
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
-	"fmt"
+	"go-compiler/common/pkg/utils"
 	"go-compiler/common/pkg/utils/logger"
-	"go-compiler/execution-service/internal/adapter/clients/kubernetes"
 	"go-compiler/execution-service/internal/adapter/clients/queue"
 	"go-compiler/execution-service/internal/domain/dto/request"
 	"go.mongodb.org/mongo-driver/bson"
+	"io"
+	"os/exec"
 	"time"
 )
 
 type ExecutionRequestService struct {
 	QueueClient      queue.IQueueClient
-	KubernetesClient kubernetes.IKubernetesClient
+	cache            utils.ICacheClient
 }
 
-func NewExecutionRequestService(qc queue.IQueueClient, kc kubernetes.IKubernetesClient) *ExecutionRequestService {
+func NewExecutionRequestService(qc queue.IQueueClient,  c utils.ICacheClient) *ExecutionRequestService {
 	return &ExecutionRequestService{
 		QueueClient:      qc,
-		KubernetesClient: kc,
+		cache:            c,
 	}
 }
 
 func (s *ExecutionRequestService) HandleExecution(ctx context.Context, payload request.NewExecutionRequest) error {
 	log := logger.GetLogger(ctx)
 	methodName := "HandleExecution"
-	start := time.Now()
-	log.Info("Entering", "methodName", methodName, "start_time", start)
+	log.Info("Entering", "methodName", methodName)
 
-	// Call the Python processing function
-	resp := s.ProcessPython(payload.Code, payload.StdIn, payload.ConnectionId)
-	if resp == "" {
-		log.Error("Error processing request")
-		return fmt.Errorf("Error processing request")
+	switch payload.LanguageId {
+	case 1:
+		err := s.ProcessPythonRequest(ctx, payload)
+		if err != nil {
+			log.Error("Error processing Python request", "error", err)
+			return err
+		}
+
+	case 2:
+		err := s.ProcessJavaScriptRequest(ctx, payload)
+		if err != nil {
+			log.Error("Error processing JavaScript request", "error", err)
+			return err
+		}
+
+	case 3:
+		err := s.ProcessBashRequest(ctx, payload)
+		if err != nil {
+			log.Error("Error processing Bash request", "error", err)
+			return err
+		}
 	}
 
-	// Log the total time taken for the HandleExecution function
-	log.Info("Exiting", "methodName", methodName, "total_time_taken", time.Since(start))
+	return nil
+}
+func (e *ExecutionRequestService) ProcessPythonRequest(ctx context.Context, payload request.NewExecutionRequest) error {
+	log := logger.GetLogger(ctx)
+	methodName := "ProcessPythonRequest"
+	log.Info("Entering", "methodName", methodName)
+
+	// Decode the base64-encoded Python code
+	decodedCode, err := base64.StdEncoding.DecodeString(payload.Code)
+	if err != nil {
+		log.Error("Error decoding base64 string", "error", err)
+		return err
+	}
+
+	// Create the command to execute the decoded Python code
+	cmd := exec.Command("python3", "-c", string(decodedCode))
+
+	// Get the stdin pipe for sending input to the Python script
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Error("Error creating stdin pipe", "error", err)
+		return err
+	}
+
+	// Run the command asynchronously and provide the input from payload.Stdin
+	go func() {
+		defer stdin.Close()
+		if payload.StdIn != "" {
+			// Write the provided input from payload.StdIn to the stdin of the Python script
+			io.WriteString(stdin, payload.StdIn)
+		}
+	}()
+
+	// Capture the combined stdout and stderr output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Error("Error executing code", "error", err, "output", string(output))
+		return err
+	}
+
+	expiration := 1 * time.Hour
+	// Push the result to the cache
+	err = e.cache.Set(payload.RequestId, string(output), expiration)
+	if err != nil {
+		log.Error("Error setting cache", "error", err)
+		return err
+	}
+
+	return nil
+}
+func (e *ExecutionRequestService) ProcessJavaScriptRequest(ctx context.Context, payload request.NewExecutionRequest) error {
+	log := logger.GetLogger(ctx)
+	methodName := "ProcessJavaScriptRequest"
+	log.Info("Entering", "methodName", methodName)
+
+	decodedCode, err := base64.StdEncoding.DecodeString(payload.Code)
+	if err != nil {
+		log.Error("Error decoding base64 string", "error", err)
+		return err
+	}
+
+	// Create the command to execute the JavaScript code
+	cmd := exec.Command("node", "-e", string(decodedCode))
+
+	// Get the stdin pipe for sending input to the JavaScript script
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Error("Error creating stdin pipe", "error", err)
+		return err
+	}
+
+	// Run the command asynchronously and provide the input from payload.StdIn
+	go func() {
+		defer stdin.Close()
+		if payload.StdIn != "" {
+			// Write the provided input from payload.StdIn to the stdin of the JavaScript script
+			io.WriteString(stdin, payload.StdIn)
+		}
+	}()
+
+	// Capture the combined stdout and stderr
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		//log the error but save the error as output in cache
+		log.Error("Error executing code", "error", err, "output", string(output))
+		expiration := 1 * time.Hour
+		// Push the result to the cache
+		err = e.cache.Set(payload.RequestId, string(output), expiration)
+		if err != nil {
+			log.Error("Error setting cache", "error", err)
+			return err
+		}
+
+	}
+	expiration := 1 * time.Hour
+	// Push the result to the cache
+	err = e.cache.Set(payload.RequestId, string(output), expiration)
+	if err != nil {
+		log.Error("Error setting cache", "error", err)
+		return err
+	}
+
 	return nil
 }
 
-func (e *ExecutionRequestService) ProcessPython(Code string, Stdin string, ConnectionId string) string {
-	log := logger.GetLogger()
-	processStart := time.Now()
-	log.Info("Inside ProcessPython", "start_time", processStart)
-
-	// Step 1: Decode the base64-encoded Python code
-	decodeStart := time.Now()
-	decodedCodeBytes, err := base64.StdEncoding.DecodeString(Code)
+func (e *ExecutionRequestService) ProcessBashRequest(ctx context.Context, payload request.NewExecutionRequest) error {
+	log := logger.GetLogger(ctx)
+	methodName := "ProcessBashRequest"
+	log.Info("Entering", "methodName", methodName)
+	decodedCode, err := base64.StdEncoding.DecodeString(payload.Code)
 	if err != nil {
-		log.Error("Error decoding base64 code:", err)
-		return ""
+		log.Error("Error decoding base64 string", "error", err)
+		return err
 	}
-	log.Info("Decoded base64 code", "time_taken", time.Since(decodeStart))
+	// Create the command to execute the Bash code
+	cmd := exec.Command("bash", "-c", string(decodedCode))
 
-	// Step 2: Decode the base64-encoded stdin input (if provided)
-	decodeStdinStart := time.Now()
-	var stdin string
-	if Stdin != "" {
-		decodedStdinBytes, err := base64.StdEncoding.DecodeString(Stdin)
-		if err != nil {
-			log.Error("Error decoding base64 stdin:", err)
-			return ""
+	// Get the stdin pipe for sending input to the Bash script
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Error("Error creating stdin pipe", "error", err)
+		return err
+	}
+
+	// Run the command asynchronously and provide the input from payload.StdIn
+	go func() {
+		defer stdin.Close()
+		if payload.StdIn != "" {
+			// Write the provided input from payload.StdIn to the stdin of the Bash script
+			io.WriteString(stdin, payload.StdIn)
 		}
-		stdin = string(decodedStdinBytes)
-	} else {
-		stdin = "" // No stdin provided
-	}
-	log.Info("Decoded base64 stdin", "time_taken", time.Since(decodeStdinStart))
+	}()
 
-	// Step 3: Define the container image and command to run the code
-	cmd := []string{"bash", "-c", fmt.Sprintf("echo '%s' | python -c '%s'", stdin, string(decodedCodeBytes))}
-	env := []string{"CODE=" + string(decodedCodeBytes)}
-
-	// Step 4: Log the job creation start time
-	jobStart := time.Now()
-	log.Info("Starting Kubernetes Job", "start_time", jobStart)
-
-	// Step 5: Create the Kubernetes Job to execute the Python code
-	jobName, createErr := e.KubernetesClient.CreateJob("ammyy9908/go-python", cmd, env)
-	if createErr != nil {
-		log.Error("Error creating Kubernetes Job", createErr)
-		return ""
-	}
-	log.Info("Kubernetes Job created", "job_name", jobName, "time_taken", time.Since(jobStart))
-
-	// Step 6: Wait for the Job to complete
-	waitStart := time.Now()
-	log.Info("Waiting for the Job to finish execution")
-	waitErr := e.KubernetesClient.WaitForJobCompletion(jobName)
-	if waitErr != nil {
-		log.Error("Error waiting for Kubernetes Job completion", waitErr)
-		return ""
-	}
-	log.Info("Kubernetes Job execution completed", "time_taken", time.Since(waitStart))
-
-	// Step 7: Retrieve the logs from the Job's Pod
-	logRetrievalStart := time.Now()
-	log.Info("Retrieving logs from the Job")
-	logs, logsErr := e.KubernetesClient.GetJobLogs(jobName)
-	if logsErr != nil {
-		log.Error("Error retrieving logs", logsErr)
-		return ""
-	}
-	log.Info("Logs retrieved successfully", "logs", logs, "time_taken", time.Since(logRetrievalStart))
-
-	// Step 8: Publish the execution result to the queue
-	publishStart := time.Now()
-	newExecution := bson.M{
-		"connection_id": ConnectionId,
-		"output":        logs,
-	}
-
-	Payload, err := json.Marshal(newExecution)
+	// Capture the combined stdout and stderr
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Error("Error marshalling execution result", err)
-		return ""
+		log.Error("Error executing code", "error", err, "output", string(output))
+		expiration := 1 * time.Hour
+		// Push the result to the cache
+		err = e.cache.Set(payload.RequestId, string(output), expiration)
+		if err != nil {
+			log.Error("Error setting cache", "error", err)
+			return err
+		}
 	}
-	publishError := e.QueueClient.PublishMessage(string(Payload))
-	if publishError != nil {
-		log.Error("Error publishing execution result to queue", publishError)
-		return ""
+	expiration := 1 * time.Hour
+	// Push the result to the cache
+	err = e.cache.Set(payload.RequestId, string(output), expiration)
+	if err != nil {
+		log.Error("Error setting cache", "error", err)
+		return err
 	}
-	log.Info("Execution result published to queue", "time_taken", time.Since(publishStart))
 
-	// Step 9: Clean up the Kubernetes Job after execution
-	cleanupStart := time.Now()
-	log.Info("Removing the Kubernetes Job")
-	removeErr := e.KubernetesClient.DeleteJob(jobName)
-	if removeErr != nil {
-		log.Error("Error deleting Kubernetes Job", removeErr)
-		return ""
-	}
-	log.Info("Kubernetes Job removed successfully", "time_taken", time.Since(cleanupStart))
+	return nil
+}
+func (e *ExecutionRequestService) GetExecution(ctx context.Context, requestId string) (interface{}, error) {
+	log := logger.GetLogger(ctx)
+	methodName := "GetExecution"
+	log.Info("Entering", "methodName", methodName)
 
-	// Step 10: Return the logs (output from the Python code)
-	log.Info("ProcessPython completed", "total_time_taken", time.Since(processStart))
-	return logs
+	// Get the result from the cache
+	result, err := e.cache.Get(requestId)
+	if err != nil {
+		log.Error("Error getting cache", "error", err)
+		return nil, err
+	}
+	return bson.M{
+		"output": result,
+	}, nil
 }

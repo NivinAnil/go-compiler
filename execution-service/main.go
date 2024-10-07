@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go-compiler/execution-service/internal/domain/dto/request"
 	"go-compiler/execution-service/internal/ports/factory"
-	"go-compiler/request-service/pkg/router"
+	"go-compiler/execution-service/pkg/router"
 	"log"
 	"net/http"
 	"time"

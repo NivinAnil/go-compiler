@@ -13,8 +13,9 @@ func NewRouter() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	rateLimiter := RateLimiterMiddleware(10, time.Minute)
-	router.Use(rateLimiter)
+	//rateLimiter := RateLimiterMiddleware(10, time.Minute)
+	//router.Use(rateLimiter)
+	router.Use(CORSMiddleware())
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -27,7 +28,7 @@ func NewRouter() *gin.Engine {
 	{
 		v1 := api.Group("/v1")
 		{
-			v1.POST("/submission", portFactory.RequestController.GetRequest())
+			v1.GET("/submissions/:request_id", portFactory.RequestController.GetExecution())
 		}
 	}
 
@@ -43,6 +44,23 @@ func RateLimiterMiddleware(maxRequests int, window time.Duration) gin.HandlerFun
 			})
 			return
 		}
+		c.Next()
+	}
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "*")
+		c.Header("Access-Control-Allow-Methods", "POST,HEAD,PATCH, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Next()
 	}
 }
