@@ -25,7 +25,7 @@ RUN apk add --no-cache bash
 RUN apk add --no-cache nodejs npm
 
 # Copy the built Go binary from the builder stage
-COPY --from=builder /app/worker /app/worker
+COPY --from=builder /frontend/worker /app/worker
 
 # Set the environment variables for RabbitMQ
 ENV RABBITMQ_URL amqp://guest:guest@localhost:5672/

@@ -69,7 +69,7 @@ func (k *KubernetesClient) CreateJob(imageName string, cmd []string, env []strin
 		ObjectMeta: metav1.ObjectMeta{
 			Name: jobName,
 			Labels: map[string]string{
-				"app": "code-execution",
+				"frontend": "code-execution",
 			},
 		},
 		Spec: v1.JobSpec{

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  replicas: 1  # Number of desired pods. Adjust as needed.
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ammyy9908/code-editor:latest  # Replace with your actual image name and tag
+          ports:
+            - containerPort: 80  # Expose port 80 since it's served via Nginx in the Dockerfile
+          resources:  # Optional: Define resource requests/limits
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:  # Optional: Check if the frontend is ready to serve traffic
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:  # Optional: Check if the frontend is still alive
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10

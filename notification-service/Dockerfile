@@ -21,7 +21,7 @@ RUN go mod download
 COPY ./common ./common
 COPY ./notification-service ./notification-service
 
-# Build the Go app
+# Build the Go frontend
 RUN go build -o main ./notification-service
 
 # Expose port 8080 to the outside world
