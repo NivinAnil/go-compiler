@@ -2,3 +2,8 @@
 ./k8s
 .idea
 main
+
+
+# Executables
+request-service/request-service
+workers/python-worker/python-worker
